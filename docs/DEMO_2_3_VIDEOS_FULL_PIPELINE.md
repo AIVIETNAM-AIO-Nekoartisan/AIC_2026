@@ -59,7 +59,7 @@ gh auth login
 Clone đúng branch có bundle map-keyframes:
 
 ```bash
-gh repo clone AIVIETNAM-AIO-Nekoartisan/AIC_2025 AIC_2025-demo -- \
+gh repo clone AIVIETNAM-AIO-Nekoartisan/AIC_2026 AIC_2025-demo -- \
   --branch codex/colab-bundle \
   --single-branch
 cd AIC_2025-demo
