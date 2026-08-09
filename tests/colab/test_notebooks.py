@@ -36,3 +36,28 @@ def test_requirements_pin_transformers_below_five_and_cache_codec():
     assert "transformers>=4.55,<5" in requirements
     assert "timm==0.6.13" in requirements
     assert "zstandard>=0.23,<1" in requirements
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "00_Setup_Preflight.ipynb",
+        "01_Pilot_1000_Frames.ipynb",
+        "02_Encode_Full_Dataset.ipynb",
+    ],
+)
+def test_notebook_removes_unused_gradio_before_dependency_install(name):
+    document = json.loads((Path("colab/notebooks") / name).read_text())
+    commands = [
+        "".join(cell.get("source", []))
+        for cell in document["cells"]
+        if cell.get("cell_type") == "code"
+    ]
+    uninstall_index = next(
+        index for index, command in enumerate(commands) if "uninstall -y gradio" in command
+    )
+    install_index = next(
+        index for index, command in enumerate(commands) if "requirements-colab.txt" in command
+    )
+
+    assert uninstall_index < install_index
