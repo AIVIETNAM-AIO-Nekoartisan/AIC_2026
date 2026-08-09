@@ -17,6 +17,7 @@ from .extraction import ExtractedFrame, extract_mapped_frames, safe_extract_zip
 from .inventory import inspect_archives
 from .map_reader import KeyframeRecord
 from .map_reader import read_map_csv
+from .model_cache import create_model_cache, ensure_model_cache
 from .persistence import Artifact, persist_verified, verify_artifact
 from .sharding import partition_frames, write_tar_shard
 from .state import StateStore
@@ -51,6 +52,8 @@ class RunContext:
     namespace: str = "results"
     siglip_factory: Callable[[], Any] | None = None
     jina_factory: Callable[[], Any] | None = None
+    prepare_models: bool = False
+    model_downloader: Callable[[str, str], str] | None = None
 
 
 @dataclass(frozen=True)
@@ -79,10 +82,44 @@ def run_preflight(ctx: RunContext) -> dict[str, Any]:
         },
         "map": {"videos": videos, "keyframes": keyframes, "ready": map_ready},
     }
+    if ctx.prepare_models:
+        cache = prepare_model_cache(ctx)
+        report["model_cache"] = {"ready": True, "local_path": str(cache)}
     path = ctx.drive_root / "AIC25-Colab" / "runtime" / "preflight.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
+
+
+def prepare_model_cache(ctx: RunContext) -> Path:
+    model_root = ctx.drive_root / "AIC25-Colab" / "models"
+    drive_archive = model_root / "huggingface-cache.tar.zst"
+    drive_manifest = model_root / "model-cache-manifest.json"
+    cache_root = ctx.work_root / "hf-cache"
+    if drive_archive.is_file() and drive_manifest.is_file():
+        return ensure_model_cache(cache_root, drive_archive, drive_manifest)
+
+    downloader = ctx.model_downloader
+    if downloader is None:
+        from huggingface_hub import snapshot_download
+
+        downloader = lambda repo_id, cache_dir: snapshot_download(
+            repo_id=repo_id, cache_dir=cache_dir
+        )
+    revisions: dict[str, str] = {}
+    for repo_id in (ctx.config.siglip_model, ctx.config.jina_model):
+        snapshot = Path(downloader(repo_id, str(cache_root)))
+        revisions[repo_id] = snapshot.name
+    local_archive = ctx.work_root / "model-build" / "huggingface-cache.tar.zst"
+    local_manifest = ctx.work_root / "model-build" / "model-cache-manifest.json"
+    local_archive.parent.mkdir(parents=True, exist_ok=True)
+    local_archive.unlink(missing_ok=True)
+    local_manifest.unlink(missing_ok=True)
+    create_model_cache(cache_root, local_archive, local_manifest, revisions)
+    model_root.mkdir(parents=True, exist_ok=True)
+    persist_verified(local_archive, drive_archive)
+    persist_verified(local_manifest, drive_manifest)
+    return cache_root
 
 
 def _map_inventory(path: Path) -> tuple[int, int]:
@@ -222,12 +259,16 @@ def default_stage_handler(
         )
         if stage == "siglip":
             encoder = (ctx.siglip_factory or (lambda: SiglipEncoder(
-                ctx.config.siglip_model, ctx.config.siglip_dimension
+                ctx.config.siglip_model,
+                ctx.config.siglip_dimension,
+                cache_dir=str(ctx.work_root / "hf-cache"),
             )))()
             batch_size = 32
         else:
             encoder = (ctx.jina_factory or (lambda: JinaEncoder(
-                ctx.config.jina_model, ctx.config.jina_dimension
+                ctx.config.jina_model,
+                ctx.config.jina_dimension,
+                cache_dir=str(ctx.work_root / "hf-cache"),
             )))()
             batch_size = 16
         try:

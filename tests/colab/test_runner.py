@@ -15,6 +15,7 @@ from aic_colab.runner import (
     ShardJob,
     default_stage_handler,
     iter_dataset_jobs,
+    prepare_model_cache,
     run_full,
     run_preflight,
 )
@@ -164,3 +165,29 @@ def test_status_cli_reports_new_state_without_data(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["dataset_id"] == "aic25-b1"
     assert payload["batches"] == {}
+
+
+def test_prepare_model_cache_persists_once_and_restores_without_download(tmp_path):
+    downloads = []
+
+    def downloader(repo_id, cache_dir):
+        downloads.append(repo_id)
+        snapshot = Path(cache_dir) / ("models--" + repo_id.replace("/", "--")) / "snapshots" / "rev1"
+        snapshot.mkdir(parents=True, exist_ok=True)
+        (snapshot / "config.json").write_text("{}")
+        return str(snapshot)
+
+    ctx = _context(tmp_path, [], lambda *_args: [])
+    ctx.model_downloader = downloader
+
+    cache = prepare_model_cache(ctx)
+    assert len(downloads) == 2
+    assert (cache / "models--google--siglip2-so400m-patch14-384").is_dir()
+
+    downloads.clear()
+    import shutil
+
+    shutil.rmtree(cache)
+    restored = prepare_model_cache(ctx)
+    assert downloads == []
+    assert (restored / "models--jinaai--jina-clip-v2").is_dir()

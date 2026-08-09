@@ -59,6 +59,7 @@ def _context(args: argparse.Namespace) -> RunContext:
         state_store=state_store,
         jobs=iter_dataset_jobs,
         stage_handler=default_stage_handler,
+        prepare_models=args.command in {"preflight", "pilot", "full"},
     )
 
 
