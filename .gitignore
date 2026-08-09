@@ -38,6 +38,7 @@ results/
 output/
 outputs/
 qdrant_data/
+es_data/
 temp_cache/
 temp_cache_pip/
 *.log
@@ -81,3 +82,4 @@ model_weights/
 Thumbs.db
 # Local Git worktrees
 .worktrees/
+colab/.runtime/
