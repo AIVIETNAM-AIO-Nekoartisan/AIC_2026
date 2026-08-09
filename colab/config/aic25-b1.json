@@ -1,0 +1,28 @@
+{
+  "dataset_id": "aic25-b1",
+  "expected_videos": 873,
+  "expected_keyframes": 177321,
+  "archives": [
+    "Videos_L21_a.zip",
+    "Videos_L22_a.zip",
+    "Videos_L23_a.zip",
+    "Videos_L24_a.zip",
+    "Videos_L25_a.zip",
+    "Videos_L26_a.zip",
+    "Videos_L26_b.zip",
+    "Videos_L26_c.zip",
+    "Videos_L26_d.zip",
+    "Videos_L26_e.zip",
+    "Videos_L27_a.zip",
+    "Videos_L28_a.zip",
+    "Videos_L29_a.zip",
+    "Videos_L30_a.zip"
+  ],
+  "siglip_model": "google/siglip2-so400m-patch14-384",
+  "siglip_dimension": 1152,
+  "jina_model": "jinaai/jina-clip-v2",
+  "jina_dimension": 1024,
+  "shard_size": 1024,
+  "webp_quality": 90,
+  "deadline_seconds": 31500
+}
