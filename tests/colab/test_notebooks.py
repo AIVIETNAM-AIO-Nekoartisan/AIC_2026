@@ -22,7 +22,9 @@ def test_notebook_is_valid_thin_runner(name, command):
     assert "drive.mount('/content/drive')" in source
     assert f"python -m aic_colab {command}" in source
     assert "DRIVE_ROOT" in source
+    assert "BUNDLE_ZIP" in source
     assert "BUNDLE_ROOT" in source
+    assert "zipfile.ZipFile(BUNDLE_ZIP).extractall(BUNDLE_ROOT)" in source
     assert len(document["cells"]) <= 7
     assert "GOOGLE_API_KEY" not in source
     assert "HF_TOKEN" not in source

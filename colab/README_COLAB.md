@@ -6,11 +6,14 @@ object detection, Qdrant và Elasticsearch không chạy trong bundle này.
 
 ## 1. Chuẩn bị trên Drive
 
-Giữ nguyên 14 file `Videos_*.zip` trong `MyDrive/Video AIC`. Giải nén bundle vào:
+Giữ nguyên 14 file `Videos_*.zip` trong `MyDrive/Video AIC`. Đặt bundle, checksum
+và ba notebook rời vào:
 
 ```text
-MyDrive/Video AIC/AIC25-Colab/bundle-v1/
+MyDrive/Video AIC/AIC25-Colab/
 ```
+
+Notebook tự verify SHA-256 rồi giải bundle xuống `/content`; không cần giải ZIP trên Drive.
 
 Không xóa video ZIP. Bundle không tự xóa input và không ghi đè database local.
 
