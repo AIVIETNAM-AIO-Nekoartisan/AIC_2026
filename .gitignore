@@ -79,3 +79,5 @@ model_weights/
 .vscode/
 .DS_Store
 Thumbs.db
+# Local Git worktrees
+.worktrees/
