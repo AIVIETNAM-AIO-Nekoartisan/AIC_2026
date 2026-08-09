@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VBS — Visual Browsing System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">🎯 <b>VBS</b><span class="brand-sub">AI Challenge</span></div>
+    <div id="mode-switch" title="Thủ công: tự bấm tìm. Agent: trợ lý tự tìm và hỏi lại bạn.">
+      <button class="mode-btn active" data-mode="manual" type="button">🛠 Thủ công</button>
+      <button class="mode-btn" data-mode="agent" type="button">🤖 Agent</button>
+    </div>
+    <div id="services" title="Trạng thái các thành phần (tự cập nhật 15s)"></div>
+    <button id="dres-status" class="pill pill-off" title="Mở panel DRES & Bookmarks">DRES: chưa đăng nhập</button>
+    <button id="toggle-rail" class="ghost" title="DRES & Bookmarks">⭐ <span id="rail-bm-count">0</span></button>
+  </header>
+
+  <div id="layout">
+    <!-- ===== PANEL TRÁI: AGENT ===== -->
+    <aside id="agent-panel" class="hidden">
+      <div class="panel">
+        <b>🤖 Trợ lý tìm kiếm</b>
+        <div id="agent-log"></div>
+        <div id="agent-suggest"></div>
+        <form id="agent-form">
+          <textarea name="msg" rows="2" placeholder="Mô tả cảnh cần tìm… (Enter để gửi)"></textarea>
+          <div class="agent-actions">
+            <button type="submit" class="primary">Gửi</button>
+            <button type="button" id="agent-reset" class="ghost">🗑 Hội thoại mới</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <main>
+      <!-- ===== QUERY ZONE (chỉ ô nhập + nút tìm; options ở sidebar phải) ===== -->
+      <section class="query-zone">
+        <nav id="tabs">
+          <button class="tab active" data-tab="kis">🔍 KIS</button>
+          <button class="tab" data-tab="asr">🎙 ASR</button>
+          <button class="tab" data-tab="ocr">🔤 OCR</button>
+          <button class="tab" data-tab="temporal">⏱ Temporal</button>
+          <button class="tab" data-tab="tcomb">🧩 T.Combinate</button>
+          <button class="tab" data-tab="intelligent">🧠 Intelligent</button>
+          <button class="tab" data-tab="comb">🔗 Combinate</button>
+          <button class="tab" data-tab="browse">📺 Browse</button>
+        </nav>
+
+        <form id="form-kis" class="search-form" data-tab="kis">
+          <div class="search-bar">
+            <textarea name="text_query" rows="2" placeholder="Mô tả cảnh cần tìm — vd: a firefighter spraying water on a burning building…"></textarea>
+            <button type="submit" class="primary">Tìm kiếm</button>
+          </div>
+        </form>
+
+        <form id="form-asr" class="search-form hidden" data-tab="asr">
+          <div class="search-bar">
+            <textarea name="query" rows="2" placeholder="Từ khóa trong lời nói (tiếng Việt) — vd: bão số 3 đổ bộ…"></textarea>
+            <button type="submit" class="primary">Tìm ASR</button>
+          </div>
+        </form>
+
+        <form id="form-ocr" class="search-form hidden" data-tab="ocr">
+          <div class="search-bar">
+            <textarea name="query" rows="2" placeholder="Chữ xuất hiện trên khung hình — banner, tên người, biển hiệu…"></textarea>
+            <button type="submit" class="primary">Tìm OCR</button>
+          </div>
+        </form>
+
+        <form id="form-temporal" class="search-form hidden" data-tab="temporal">
+          <div class="search-bar">
+            <textarea name="query" rows="2" placeholder="Mô tả chuỗi sự kiện, GPT tự tách event — cần OPENAI_API_KEY…"></textarea>
+            <button type="submit" class="primary">Tìm chuỗi</button>
+          </div>
+        </form>
+
+        <form id="form-tcomb" class="search-form hidden" data-tab="tcomb">
+          <div id="events"></div>
+          <div class="options-row">
+            <button type="button" id="add-event" class="ghost">+ Thêm event</button>
+            <button type="submit" class="primary">Tìm theo events</button>
+          </div>
+        </form>
+
+        <form id="form-intelligent" class="search-form hidden" data-tab="intelligent">
+          <div class="search-bar">
+            <textarea name="query" rows="2" placeholder="Query tự nhiên, GPT phân tích & định tuyến modality — cần OPENAI_API_KEY…"></textarea>
+            <button type="submit" class="primary">Tìm 🧠</button>
+          </div>
+        </form>
+
+        <form id="form-comb" class="search-form hidden" data-tab="comb">
+          <div class="comb-grid">
+            <input name="kis_q" placeholder="🔍 KIS: mô tả cảnh…">
+            <input name="ocr_q" placeholder="🔤 OCR: chữ trên hình…">
+            <input name="asr_q" placeholder="🎙 ASR: lời nói…">
+          </div>
+          <div class="options-row"><button type="submit" class="primary">Tìm kết hợp</button></div>
+        </form>
+
+        <form id="form-browse" class="search-form hidden" data-tab="browse">
+          <div class="search-bar">
+            <input name="video" placeholder="Tên video — vd: L27_V001" style="flex:1;font-size:15px;padding:12px 14px;">
+            <button type="submit" class="primary">Duyệt</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ===== RESULTS ===== -->
+      <div id="toolbar" class="hidden">
+        <span id="status"></span>
+        <label id="group-shot-wrap" title="Gộp kết quả để mỗi ô là 1 shot hoặc 1 video (badge hiện số keyframe đã gộp)">
+          Gộp:
+          <select id="group-mode">
+            <option value="shot" selected>theo shot</option>
+            <option value="video">theo video</option>
+            <option value="none">không gộp</option>
+          </select>
+        </label>
+        <button id="expand-info" class="ghost hidden" type="button" title="Xem các query GPT đã mở rộng">🔄 Query mở rộng</button>
+        <button id="opts-toggle" class="ghost" type="button" title="Mở/đóng cấu hình">⚙️</button>
+        <span id="pager">
+          <button id="prev-page" class="ghost">‹ Trước</button>
+          <span id="page-info"></span>
+          <button id="next-page" class="ghost">Sau ›</button>
+        </span>
+      </div>
+      <div id="analysis" class="hidden"></div>
+      <div id="results">
+        <div id="empty-state">
+          <div class="empty-icon">🎬</div>
+          <p>Nhập truy vấn để tìm trong bộ sưu tập video.</p>
+          <p class="hint">Rê chuột lên ảnh để xem GIF preview · Click ảnh để phóng to · ⭐ bookmark để nộp TRAKE</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== SIDEBAR PHẢI: CẤU HÌNH (như sidebar Streamlit) ===== -->
+    <aside id="opts">
+      <div class="panel">
+        <b>⚙️ Cấu hình tìm kiếm <button id="opts-close" class="ghost" type="button" title="Thu gọn sidebar">✕</button></b>
+
+        <div class="opt-group" data-tab="kis">
+          <label class="file-chip">📷 Ảnh query (Video KIS)<input type="file" name="image" form="form-kis" accept="image/*" hidden></label>
+          <span id="image-name" class="hint"></span>
+          <label>Số kết quả <input type="number" name="num_results" form="form-kis" value="40" min="1" max="500"></label>
+          <label>Ngưỡng điểm <input type="number" name="score_threshold" form="form-kis" value="0" min="0" max="1" step="0.05"></label>
+          <label class="check"><input type="checkbox" name="use_siglip" form="form-kis" checked> SigLIP2</label>
+          <label class="check"><input type="checkbox" name="use_jina" form="form-kis" checked> Jina-CLIP-v2</label>
+          <label class="check"><input type="checkbox" name="use_beit3" form="form-kis" checked> BEiT-3</label>
+          <label class="check"><input type="checkbox" name="use_bge" form="form-kis" checked> BGE caption</label>
+          <label class="check"><input type="checkbox" name="use_rerank" form="form-kis"> Rerank BLIP2</label>
+          <label class="check"><input type="checkbox" name="auto_expand" form="form-kis"> GPT expand query</label>
+          <label>Số query mở rộng <input type="number" name="num_expansions" form="form-kis" value="4" min="2" max="10" title="GPT sinh thêm bao nhiêu query (cần bật GPT expand)"></label>
+          <hr>
+          <label>Kiểu rerank <select name="rerank_score_type" form="form-kis"><option value="itm">itm (chính xác)</option><option value="itc">itc (nhanh)</option></select></label>
+          <label>Rerank top-k <input type="number" name="rerank_top_k" form="form-kis" value="100" min="5" max="500"></label>
+          <label>Trọng số SigLIP2 <input type="number" name="w_siglip" form="form-kis" value="1.0" step="0.1" min="0"></label>
+          <label>Trọng số Jina <input type="number" name="w_jina" form="form-kis" value="1.0" step="0.1" min="0"></label>
+          <label>Trọng số BEiT-3 <input type="number" name="w_beit3" form="form-kis" value="1.0" step="0.1" min="0"></label>
+          <label>Trọng số caption <input type="number" name="w_caption" form="form-kis" value="1.0" step="0.1" min="0"></label>
+          <hr>
+          <label>Lọc object <input name="object_class" form="form-kis" placeholder="person:2, car:1" title="Nhiều class cách nhau dấu phẩy:&#10;• person:2 — khoảng 2 người&#10;• car — có ít nhất 1 xe&#10;• 10 — tổng 10 object bất kỳ"></label>
+          <div id="obj-suggest" class="hint hidden" title="Các object xuất hiện trong kết quả vừa tìm — click để chọn"></div>
+          <label>± sai số <input type="number" name="object_tolerance" form="form-kis" value="3" min="0" max="50"></label>
+          <label>Chế độ lọc <select name="object_mode" form="form-kis"><option value="hard">hard — cắt ngoài khoảng</option><option value="soft">soft — thang điểm lệch</option></select></label>
+          <label>Điểm sàn (soft) <input type="number" name="object_floor" form="form-kis" value="0.25" min="0" max="1" step="0.05" title="Đúng số lượng x1.0; lệch càng xa nhân điểm giảm dần về sàn này"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="asr">
+          <label>Số kết quả <input type="number" name="num_results" form="form-asr" value="40" min="1" max="500"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="ocr">
+          <label>Số kết quả <input type="number" name="num_results" form="form-ocr" value="40" min="1" max="500"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="temporal">
+          <label>Số kết quả <input type="number" name="num_results" form="form-temporal" value="10" min="1" max="100"></label>
+          <label>Ứng viên / event <input type="number" name="per_event_k" form="form-temporal" value="30" min="5" max="500"></label>
+          <label class="check"><input type="checkbox" name="same_video_only" form="form-temporal" checked> Cùng 1 video</label>
+          <hr>
+          <label>Max events <input type="number" name="max_events" form="form-temporal" value="5" min="2" max="8"></label>
+          <label>Decay <input type="number" name="decay_rate" form="form-temporal" value="0.01" step="0.005" min="0.001" max="0.1"></label>
+          <label>Gap tối đa (s) <input type="number" name="max_gap_seconds" form="form-temporal" placeholder="∞" min="0"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="tcomb">
+          <label>Số kết quả <input type="number" name="num_results" form="form-tcomb" value="5" min="1" max="100"></label>
+          <label>Ứng viên / event <input type="number" name="per_event_k" form="form-tcomb" value="50" min="10" max="1000"></label>
+          <label class="check"><input type="checkbox" name="use_rerank_per_event" form="form-tcomb"> Rerank mỗi event</label>
+          <hr>
+          <b class="hint">Trọng số modal</b>
+          <label>KIS <input type="number" name="w_kis" form="form-tcomb" value="0.5" step="0.1" min="0"></label>
+          <label>OCR <input type="number" name="w_ocr" form="form-tcomb" value="0.3" step="0.1" min="0"></label>
+          <label>ASR <input type="number" name="w_asr" form="form-tcomb" value="0.2" step="0.1" min="0"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="intelligent">
+          <label>Số kết quả <input type="number" name="num_results" form="form-intelligent" value="20" min="1" max="200"></label>
+          <label>Ngưỡng điểm <input type="number" name="score_threshold" form="form-intelligent" value="0.1" min="0" max="1" step="0.05"></label>
+          <label class="check"><input type="checkbox" name="enable_kis" form="form-intelligent" checked> KIS</label>
+          <label class="check"><input type="checkbox" name="enable_ocr" form="form-intelligent" checked> OCR</label>
+          <label class="check"><input type="checkbox" name="enable_asr" form="form-intelligent" checked> ASR</label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="comb">
+          <label>Số kết quả <input type="number" name="num_results" form="form-comb" value="30" min="1" max="200"></label>
+        </div>
+
+        <div class="opt-group hidden" data-tab="browse">
+          <label>Chế độ
+            <select name="mode" form="form-browse">
+              <option value="time">⏱ Theo thời gian</option>
+              <option value="shot">🎬 Theo shot</option>
+            </select>
+          </label>
+          <span class="browse-time">
+            <label>Từ (giây) <input type="number" name="start_s" form="form-browse" value="0" min="0" step="1"></label>
+            <label>Đến (giây) <input type="number" name="end_s" form="form-browse" value="60" min="0" step="1"></label>
+            <label>Stride <input type="number" name="sample_stride" form="form-browse" value="1" min="1" title="Lấy 1 frame mỗi N mẫu"></label>
+          </span>
+          <span class="browse-shot hidden">
+            <label>Shot từ <input type="number" name="start_shot" form="form-browse" value="1" min="1"></label>
+            <label>Shot đến <input type="number" name="end_shot" form="form-browse" value="20" min="1"></label>
+          </span>
+          <label>Giới hạn <input type="number" name="limit" form="form-browse" value="200" min="1" max="5000"></label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== DRAWER: DRES & BOOKMARKS (ẩn mặc định) ===== -->
+    <aside id="rail">
+      <div class="row spread rail-head"><b>DRES & Bookmarks</b><button id="close-rail" class="ghost">✕</button></div>
+      <details class="panel" id="dres-panel" open>
+        <summary>🔐 DRES</summary>
+        <div id="dres-login">
+          <input id="dres-user" placeholder="Username" autocomplete="username">
+          <input id="dres-pass" type="password" placeholder="Password" autocomplete="current-password">
+          <button id="dres-login-btn" class="primary">Đăng nhập</button>
+        </div>
+        <div id="dres-session" class="hidden">
+          <div class="row">
+            <select id="dres-eval" title="Evaluation"></select>
+            <button id="dres-refresh-evals" class="ghost" title="Tải lại">↻</button>
+          </div>
+          <input id="dres-eval-manual" placeholder="Hoặc nhập Evaluation ID">
+          <div class="row">
+            <select id="task-type">
+              <option value="KIS">KIS</option>
+              <option value="QA">QA</option>
+              <option value="TRAKE">TRAKE</option>
+            </select>
+            <button id="dres-state-btn" class="ghost">📊 Điểm</button>
+            <button id="dres-logout-btn" class="ghost">Thoát</button>
+          </div>
+          <input id="qa-answer" class="hidden" placeholder="Câu trả lời QA…">
+          <div id="dres-info" class="hint"></div>
+          <div id="submitted" class="hint"></div>
+        </div>
+      </details>
+
+      <div class="panel">
+        <div class="row spread"><b>⭐ Bookmarks <span id="bm-count"></span></b>
+          <span class="row">
+            <button id="submit-trake" class="ghost" title="Nộp TRAKE theo thứ tự bookmark">🚀 TRAKE</button>
+            <button id="clear-bookmarks" class="ghost">Xóa</button>
+          </span>
+        </div>
+        <div id="bookmarks"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== MODAL CHI TIẾT FRAME ===== -->
+  <div id="detail-overlay" class="hidden">
+    <div id="detail-modal">
+      <button id="detail-close" class="ghost" type="button">✕ Đóng</button>
+      <div id="detail-body">
+        <div id="detail-left">
+          <div id="detail-tabs">
+            <button class="dtab active" data-view="image" type="button">🖼 Ảnh</button>
+            <button class="dtab" data-view="video" type="button">▶️ Xem video tại đây</button>
+          </div>
+          <img id="detail-img" alt="keyframe">
+          <video id="detail-video" class="hidden" controls preload="metadata"></video>
+          <div id="detail-actions">
+            <button id="detail-bookmark" type="button">⭐ Bookmark</button>
+            <button id="detail-submit" class="primary" type="button">🚀 Nộp DRES</button>
+            <a id="detail-raw" target="_blank">🖼 Ảnh gốc</a>
+          </div>
+          <h4>🎞 Shot lân cận <small class="hint">(click để xem frame đó)</small></h4>
+          <div id="detail-neighbors"></div>
+        </div>
+        <div id="detail-right">
+          <h3 id="detail-title"></h3>
+          <div id="detail-meta"></div>
+          <h4>📝 Caption (BLIP2)</h4>
+          <div id="detail-caption" class="detail-block"></div>
+          <h4>📦 Object detection</h4>
+          <div id="detail-od" class="detail-block"></div>
+          <h4>💬 ASR — lời nói quanh thời điểm này (±10s)</h4>
+          <div id="detail-asr" class="detail-block"></div>
+          <h4>🔤 OCR — chữ trên hình</h4>
+          <div id="detail-ocr" class="detail-block"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

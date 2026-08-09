@@ -1,0 +1,24 @@
+streamlit
+qdrant-client
+transformers>=4.55,<5  # jina-clip-v2 remote code vỡ trên transformers 5.x; siglip2 cần >=4.49
+# torch >= 2.6.0
+Pillow
+python-dotenv
+pandas
+numpy
+opencv-python
+sentencepiece
+accelerate==1.9.0
+fastapi
+uvicorn
+python-multipart
+ultralytics
+sentence-transformers
+timm==0.6.13  # compatible with torchscale 0.3.0 / BEiT-3 registry API
+einops
+librosa
+elasticsearch>=8,<9  # server 8.x (docker-compose); client 9 đổi media-type header
+FlagEmbedding
+torchscale==0.3.0  # BEiT-3 (model/Beit3_embedding_optimized.py)
+google-generativeai
+openai

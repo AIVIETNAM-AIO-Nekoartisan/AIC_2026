@@ -1,0 +1,81 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.tox/
+.nox/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Node.js
+online/frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated runtime data
+data/
+results/
+output/
+outputs/
+qdrant_data/
+temp_cache/
+temp_cache_pip/
+*.log
+
+# Model checkpoints
+model_weights/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+
+# Large dataset archives and media
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.mpeg
+*.mpg
+*.mp3
+*.wav
+*.ogg
+*.flac
+
+# Local tools and editor state
+.claude/
+.codex/
+.gemini/
+.streamlit/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
