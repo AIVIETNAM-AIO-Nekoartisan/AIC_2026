@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-08-09
 
-**Trạng thái:** Chờ người dùng review
+**Trạng thái:** Đã được người dùng duyệt ngày 2026-08-09
 
 **Dataset ID:** `aic25-b1`
 
@@ -104,6 +104,9 @@ aic25-colab-bundle/
 ├── config/
 │   └── aic25-b1.json
 ├── tests/
+├── local_tools/
+│   ├── import_colab_visual.py
+│   └── backup_qdrant_collection.py
 ├── requirements-colab.txt
 ├── README_COLAB.md
 └── VERSION
